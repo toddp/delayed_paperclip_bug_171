@@ -1,0 +1,58 @@
+This project demonstrates a bug with Delayed Paperclip that is not present with 
+regular (non-delayed) Paperclip gem. 
+
+see Image model for details. Image uses a 'processor' to rotate the attachment 
+by passing options to Imagemagick. However those options are not passed when using
+delayed_paperclip.
+
+Here is Paperclip Thumbnail processor and documentation: 
+
+[https://github.com/thoughtbot/paperclip#custom-attachment-processors](https://github.com/thoughtbot/paperclip#custom-attachment-processors)
+
+[(https://github.com/thoughtbot/paperclip/blob/master/lib/paperclip/thumbnail.rb](https://github.com/thoughtbot/paperclip/blob/master/lib/paperclip/thumbnail.rb)
+
+
+
+You will need to set these environment variables to configure S3 storage: 
+
+* PAPERCLIP_CLOUDFRONT_HOST
+* PAPERCLIP_AWS_BUCKET
+* PAPERCLIP_AWS_REGION
+* AWS_ACCESS_KEY_ID
+* AWS_SECRET_ACCESS_KEY
+
+To demonstrate this bug, first comment out the line in app/models/image.rb: 
+
+
+
+<tt>#process_in_background</tt>
+
+then in rails console: 
+
+
+<tt>i = Image.new</tt>
+
+<tt>i.rotate = 90</tt>
+
+<tt>i.attachment = URI.parse("http://www.maniacworld.com/keyboard-cat.jpg")</tt>
+
+<tt>i.save</tt>
+
+
+and note that in logs/development.log, you see something like this (note 'rotate 90'
+is passed to imagemagick 'convert' command): 
+
+<tt>Command :: convert '/var/folders/9w/f7r7st_x52d9j7h26rvxnqtw3905xq/T/31a169fda868e4dd6c879cfaf2609ef620160406-39732-1sjeifq[0]' -rotate 90 -auto-orient -resize "50x" -crop "50x50+0+8" +repage -quality 60 '/var/folders/9w/f7r7st_x52d9j7h26rvxnqtw3905xq/T/9971431f00d25acde1138f58da6f433220160406-39732-1rz6j1z'</tt>
+
+
+Now to show this doesn't work with delayed_paperclip, uncomment the line: 
+<tt>process_in_background</tt> in app/models/image.rb, and run the same commands 
+in console. This time, notice that the log shows DelayedPaperclip running 'convert'
+without the specified options: 
+
+<tt>[ActiveJob] [DelayedPaperclip::Jobs::ActiveJob] [5c73221b-83da-453d-901b-5c2802a2ec1d] Command :: convert '/var/folders/9w/f7r7st_x52d9j7h26rvxnqtw3905xq/T/0b7318c1d94b859bb9dee454aeb2db2c20160406-60232-13c47mv.jpg[0]' -auto-orient -quality 100 '/var/folders/9w/f7r7st_x52d9j7h26rvxnqtw3905xq/T/f752a347e4d253473135691e727d658420160406-60232-1hz90tc'</tt>
+
+
+
+you can also run i.attachment.url to get the s3 url to see the file rotated (or not) visually. 
+
