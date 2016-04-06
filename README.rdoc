@@ -34,7 +34,7 @@ then in rails console:
 
 <tt>i.rotate = 90</tt>
 
-<tt>i.attachment = URI.parse("http://www.maniacworld.com/keyboard-cat.jpg")</tt>
+<tt>i.attachment = URI.parse("someimageurl.jpg")</tt>
 
 <tt>i.save</tt>
 
